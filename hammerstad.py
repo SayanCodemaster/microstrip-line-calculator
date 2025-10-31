@@ -52,7 +52,7 @@ class HammerstadJensen:
             Z0 = self._num_Z0(w)
             if abs(Z0 - Z0_target) < 1e-3:
                 break
-            # adjust width slightly based on difference
+            # adjust width slightly based on difference 
             if Z0 > Z0_target:
                 w *= 1.01
             else:

@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    return render_template("index.html")
+    return render_template("index2.html")
 
 @app.route("/synthesize", methods=["POST"])
 def synthesize():
@@ -20,6 +20,7 @@ def synthesize():
     zo = data.get("zo")
     elecLen = data.get("elecLen")
     freq = data.get("freq")
+    t=data.get("t")
 
     h = h_mm / 1000.0  # convert mm to meters
 
@@ -46,11 +47,19 @@ def synthesize():
         ob = SchneiderMicrostrip(er, h, freq)
         w_m, l_m = ob.synthesize(zo, elecLen)
         width_mm, length_mm = w_m * 1000, l_m * 1000
-
-    result = {
-        "width_mm": width_mm,
-        "length_mm": length_mm
-    }
+    elif formula == "IPC2141":
+        ob=IPC2141Microstrip(er,h,t)
+        width_mm= ob.synthesize(zo)*1000
+        
+    if formula=="IPC2141":
+        result={
+            "width_mm": width_mm
+        }
+    else:
+        result = {
+            "width_mm": width_mm,
+            "length_mm": length_mm
+        }
     return jsonify(result)
 
 @app.route("/analyze", methods=["POST"])
@@ -61,7 +70,15 @@ def analyze():
     formula = data.get("formula")
     width_mm = data.get("width_mm")
     length_mm = data.get("length_mm")
-    freq = data.get("freq")
+    try:
+        freq = data.get("freq")
+    except:
+        pass
+    try:
+        
+        t=data.get("t")
+    except:
+        pass
 
     h = h_mm / 1000.0  # convert mm to meters
 
@@ -85,9 +102,12 @@ def analyze():
         ob = SchneiderMicrostrip(er, h, freq)
         zo, elecLen = ob.analyze(w, l)
     elif formula == "IPC2141":
-        ob = IPC2141Microstrip(er, h, freq)
-        zo, elecLen = ob.analyze(w, l)
+        ob = IPC2141Microstrip(er, h, t)
+        zo = ob.analyze(w)
 
+    
+    if formula=="IPC2141":
+        return {"zo": zo}
     result = {
         "zo": zo,
         "elecLen": elecLen

@@ -175,7 +175,7 @@
           </select>
         </div>
 
-        <!-- Toggle + Calculation -->
+        <!-- Mode Selection -->
         <div class="fieldset">
           <div class="section-title">Mode Selection</div>
           <div class="controls">
@@ -199,42 +199,72 @@
       const analyzeBtn = document.getElementById("analyzeBtn");
       const inputFields = document.getElementById("inputFields");
       const output = document.getElementById("output");
-      let mode = "synthesize"; // Default mode
+      const formulaSelect = document.getElementById("formula");
+      let mode = "synthesize";
 
+      // Re-render input fields based on mode + formula
       const renderFields = () => {
+        const isIPC = formulaSelect.value === "IPC2141";
+
         if (mode === "synthesize") {
           inputFields.innerHTML = `
-            <div>
-              <label for="zo">Z<sub>o</sub></label>
-              <input id="zo" name="zo" type="number" step="0.01" value="50" />
-            </div>
-            <div>
-              <label for="elecLen">Electrical Length (deg)</label>
-              <input id="elecLen" name="elecLen" type="number" step="0.01" value="45" />
-            </div>
+        <div>
+          <label for="zo">Z<sub>o</sub></label>
+          <input id="zo" name="zo" type="number" step="0.01" value="50" />
+        </div>
+        ${!isIPC ? `
+        <div>
+          <label for="elecLen">Electrical Length (deg)</label>
+          <input id="elecLen" name="elecLen" type="number" step="0.01" value="45" />
+        </div>` : ""}
+        ${isIPC ? `
+        <div>
+          <label for="t" >Conductor Thickness (t)</label>
+          <div style="display: flex; gap: 8px">
+            <input id="t" name="t" type="number" step="0.0001" value="0.035" />
+            <select id="tUnit" name="tUnit">
+          <option>mm</option>
+          <option>cm</option>
+          <option>m</option>
+            </select>
+          </div>
+        </div>` : ""}
           `;
         } else {
           inputFields.innerHTML = `
-            <div>
-              <label for="w">Width (W)</label>
-              <div style="display: flex; gap: 8px">
-                <input id="w" name="w" type="number" step="0.01" value="3" />
-                <select id="wUnit" name="wUnit">
-                  <option>mm</option>
-                  <option>cm</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label for="l">Length (L)</label>
-              <div style="display: flex; gap: 8px">
-                <input id="l" name="l" type="number" step="0.01" value="2" />
-                <select id="lUnit" name="lUnit">
-                  <option>mm</option>
-                  <option>cm</option>
-                </select>
-              </div>
-            </div>
+        <div>
+          <label for="w">Width (W)</label>
+          <div style="display: flex; gap: 8px">
+            <input id="w" name="w" type="number" step="0.01" value="3" />
+            <select id="wUnit" name="wUnit">
+          <option>mm</option>
+          <option>cm</option>
+            </select>
+          </div>
+        </div>
+        ${!isIPC ? `
+        <div>
+          <label for="l">Length (L)</label>
+          <div style="display: flex; gap: 8px">
+            <input id="l" name="l" type="number" step="0.01" value="2" />
+            <select id="lUnit" name="lUnit">
+          <option>mm</option>
+          <option>cm</option>
+            </select>
+          </div>
+        </div>` : ""}
+        ${isIPC ? `
+        <div>
+          <label for="t">Conductor Thickness (t)</label>
+          <div style="display: flex; gap: 8px">
+            <input id="t" name="t" type="number" step="0.0001" value="0.035" />
+            <select id="tUnit" name="tUnit">
+          <option>mm</option>
+          <option>cm</option>
+          <option>m</option>
+            </select>
+          </div>
+        </div>` : ""}
           `;
         }
       };
@@ -242,6 +272,7 @@
       // Initial render
       renderFields();
 
+      // Switch modes
       synthesizeBtn.addEventListener("click", () => {
         mode = "synthesize";
         synthesizeBtn.classList.add("active");
@@ -258,6 +289,12 @@
         output.style.display = "none";
       });
 
+      // Change field when formula changes
+      formulaSelect.addEventListener("change", () => {
+        renderFields();
+      });
+
+      // Calculate logic
       document.getElementById("calculate").addEventListener("click", async function () {
         const er = parseFloat(document.getElementById("er").value);
         const freq = parseFloat(document.getElementById("freq").value);
@@ -266,8 +303,17 @@
         const formula = document.getElementById("formula").value;
 
         let payload = { er, h, freq, formula };
-
         let endpoint = "";
+
+        // Handle IPC thickness (t)
+        const tField = document.getElementById("t");
+        if (tField) {
+          let t = parseFloat(tField.value);
+          const tUnit = document.getElementById("tUnit").value;
+          if (tUnit === "cm") t *= 10;
+          if (tUnit === "m") t *= 1000;
+          payload.t = t; // in mm
+        }
 
         if (mode === "synthesize") {
           payload.zo = parseFloat(document.getElementById("zo").value);
@@ -305,6 +351,7 @@
               Electrical Length: ${data.elecLen?.toFixed(3)}°
             `;
           }
+          
         } catch (err) {
           console.error("Error in request:", err);
           output.style.display = "block";
