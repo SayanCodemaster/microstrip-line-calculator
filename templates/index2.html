@@ -130,17 +130,26 @@
       <h1>Microstrip Line Calculator</h1>
 
       <div class="preview" aria-hidden="true">
-        <img src="{{ url_for('static', filename='images/image1.jpg') }}" alt="Microstrip diagram" />
+        <img
+          src="{{ url_for('static', filename='images/image1.jpg') }}"
+          alt="Microstrip diagram"
+        />
       </div>
 
       <form id="microstripForm" method="POST">
-        <!-- Substrate Parameters -->
         <div class="fieldset">
           <div class="section-title">Substrate Parameters</div>
           <div class="form-grid">
             <div>
               <label for="er">Dielectric Constant (ε<sub>r</sub>)</label>
-              <input id="er" name="er" type="number" step="0.01" value="4.4" min="1" />
+              <input
+                id="er"
+                name="er"
+                type="number"
+                step="0.01"
+                value="4.4"
+                min="1"
+              />
             </div>
             <div>
               <label for="h">Dielectric Height (h)</label>
@@ -155,14 +164,19 @@
             <div>
               <label for="freq">Frequency</label>
               <div style="display: flex; gap: 8px">
-                <input id="freq" name="freq" type="number" step="0.01" value="2.4" />
+                <input
+                  id="freq"
+                  name="freq"
+                  type="number"
+                  step="0.01"
+                  value="2.4"
+                />
                 <span style="align-self: center; color: var(--muted)">GHz</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Formula -->
         <div class="fieldset">
           <div class="section-title">Formula</div>
           <select id="formula" name="formula">
@@ -175,21 +189,28 @@
           </select>
         </div>
 
-        <!-- Mode Selection -->
         <div class="fieldset">
           <div class="section-title">Mode Selection</div>
           <div class="controls">
-            <button type="button" id="synthesizeBtn" class="toggle-mode active">Synthesize</button>
-            <button type="button" id="analyzeBtn" class="toggle-mode">Analyze</button>
+            <button type="button" id="synthesizeBtn" class="toggle-mode active">
+              Synthesize
+            </button>
+            <button type="button" id="analyzeBtn" class="toggle-mode">
+              Analyze
+            </button>
           </div>
 
-          <div id="inputFields" class="form-grid" style="margin-top: 12px;"></div>
+          <div
+            id="inputFields"
+            class="form-grid"
+            style="margin-top: 12px"
+          ></div>
 
           <div class="controls">
             <button id="calculate" type="button">Calculate</button>
           </div>
 
-          <div id="output" class="output-box" style="display:none;"></div>
+          <div id="output" class="output-box" style="display: none"></div>
         </div>
       </form>
     </div>
@@ -212,12 +233,18 @@
           <label for="zo">Z<sub>o</sub></label>
           <input id="zo" name="zo" type="number" step="0.01" value="50" />
         </div>
-        ${!isIPC ? `
+        ${
+          !isIPC
+            ? `
         <div>
           <label for="elecLen">Electrical Length (deg)</label>
           <input id="elecLen" name="elecLen" type="number" step="0.01" value="45" />
-        </div>` : ""}
-        ${isIPC ? `
+        </div>`
+            : ""
+        }
+        ${
+          isIPC
+            ? `
         <div>
           <label for="t" >Conductor Thickness (t)</label>
           <div style="display: flex; gap: 8px">
@@ -228,7 +255,9 @@
           <option>m</option>
             </select>
           </div>
-        </div>` : ""}
+        </div>`
+            : ""
+        }
           `;
         } else {
           inputFields.innerHTML = `
@@ -242,7 +271,9 @@
             </select>
           </div>
         </div>
-        ${!isIPC ? `
+        ${
+          !isIPC
+            ? `
         <div>
           <label for="l">Length (L)</label>
           <div style="display: flex; gap: 8px">
@@ -252,8 +283,12 @@
           <option>cm</option>
             </select>
           </div>
-        </div>` : ""}
-        ${isIPC ? `
+        </div>`
+            : ""
+        }
+        ${
+          isIPC
+            ? `
         <div>
           <label for="t">Conductor Thickness (t)</label>
           <div style="display: flex; gap: 8px">
@@ -264,7 +299,9 @@
           <option>m</option>
             </select>
           </div>
-        </div>` : ""}
+        </div>`
+            : ""
+        }
           `;
         }
       };
@@ -295,69 +332,97 @@
       });
 
       // Calculate logic
-      document.getElementById("calculate").addEventListener("click", async function () {
-        const er = parseFloat(document.getElementById("er").value);
-        const freq = parseFloat(document.getElementById("freq").value);
-        let h = parseFloat(document.getElementById("h").value);
-        if (document.getElementById("hUnit").value === "cm") h *= 10;
-        const formula = document.getElementById("formula").value;
+      document
+        .getElementById("calculate")
+        .addEventListener("click", async function () {
+          const er = parseFloat(document.getElementById("er").value);
+          const freq = parseFloat(document.getElementById("freq").value);
+          let h = parseFloat(document.getElementById("h").value);
+          if (document.getElementById("hUnit").value === "cm") h *= 10;
+          const formula = document.getElementById("formula").value;
 
-        let payload = { er, h, freq, formula };
-        let endpoint = "";
+          let payload = { er, h, freq, formula };
+          let endpoint = "";
 
-        // Handle IPC thickness (t)
-        const tField = document.getElementById("t");
-        if (tField) {
-          let t = parseFloat(tField.value);
-          const tUnit = document.getElementById("tUnit").value;
-          if (tUnit === "cm") t *= 10;
-          if (tUnit === "m") t *= 1000;
-          payload.t = t; // in mm
-        }
-
-        if (mode === "synthesize") {
-          payload.zo = parseFloat(document.getElementById("zo").value);
-          payload.elecLen = parseFloat(document.getElementById("elecLen").value);
-          endpoint = "/synthesize";
-        } else {
-          let w = parseFloat(document.getElementById("w").value);
-          let l = parseFloat(document.getElementById("l").value);
-          if (document.getElementById("wUnit").value === "cm") w *= 10;
-          if (document.getElementById("lUnit").value === "cm") l *= 10;
-          payload.width_mm = w;
-          payload.length_mm = l;
-          endpoint = "/analyze";
-        }
-
-        try {
-          const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          const data = await response.json();
-
-          output.style.display = "block";
-          if (mode === "synthesize") {
-            output.innerHTML = `
-              <strong>Results:</strong><br/>
-              Width (W): ${data.width_mm?.toFixed(3)} mm<br/>
-              Length (L): ${data.length_mm?.toFixed(3)} mm
-            `;
-          } else {
-            output.innerHTML = `
-              <strong>Results:</strong><br/>
-              Z₀: ${data.zo?.toFixed(3)} Ω<br/>
-              Electrical Length: ${data.elecLen?.toFixed(3)}°
-            `;
+          // Handle IPC thickness (t)
+          const tField = document.getElementById("t");
+          if (tField) {
+            let t = parseFloat(tField.value);
+            const tUnit = document.getElementById("tUnit").value;
+            if (tUnit === "cm") t *= 10; // cm → mm ✅
+            if (tUnit === "m") t *= 1000; // m → mm ✅
+            payload.t = t; // in mm ✅
           }
-          
-        } catch (err) {
-          console.error("Error in request:", err);
-          output.style.display = "block";
-          output.innerHTML = `<span style="color:red;">Wrong Inputs!!</span>`;
-        }
-      });
+
+          if (mode === "synthesize") {
+            payload.zo = parseFloat(document.getElementById("zo").value);
+            // <-- FIX: Only read elecLen if formula is NOT IPC2141
+            if (formula !== "IPC2141") {
+              payload.elecLen = parseFloat(
+                document.getElementById("elecLen").value
+              );
+            }
+            endpoint = "/synthesize";
+          } else {
+            let w = parseFloat(document.getElementById("w").value);
+            if (document.getElementById("wUnit").value === "cm") w *= 10;
+            payload.width_mm = w;
+
+            // <-- FIX: Only read length (l) if formula is NOT IPC2141
+            if (formula !== "IPC2141") {
+              let l = parseFloat(document.getElementById("l").value);
+              if (document.getElementById("lUnit").value === "cm") l *= 10;
+              payload.length_mm = l;
+            }
+            endpoint = "/analyze";
+          }
+
+          try {
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            
+            if (!response.ok) {
+                // Handle server errors (like the 400 error for missing 't')
+                const errData = await response.json();
+                throw new Error(errData.error || "Server error");
+            }
+
+            const data = await response.json();
+
+            output.style.display = "block";
+            if (mode === "synthesize") {
+              // <-- FIX: Conditionally display length
+              let resultHTML = `<strong>Results:</strong><br/>Width (W): ${data.width_mm?.toFixed(
+                3
+              )} mm`;
+              if (data.length_mm !== undefined) {
+                resultHTML += `<br/>Length (L): ${data.length_mm?.toFixed(
+                  3
+                )} mm`;
+              }
+              output.innerHTML = resultHTML;
+            } else {
+              // <-- FIX: Conditionally display electrical length
+              let resultHTML = `<strong>Results:</strong><br/>Z₀: ${data.zo?.toFixed(
+                3
+              )} Ω`;
+              if (data.elecLen !== undefined) {
+                resultHTML += `<br/>Electrical Length: ${data.elecLen?.toFixed(
+                  3
+                )}°`;
+              }
+              output.innerHTML = resultHTML;
+            }
+          } catch (err) {
+            console.error("Error in request:", err);
+            output.style.display = "block";
+            // <-- FIX: Display the actual error message
+            output.innerHTML = `<span style="color:red;">Error: ${err.message || 'Wrong Inputs!!'}</span>`;
+          }
+        });
     </script>
   </body>
 </html>

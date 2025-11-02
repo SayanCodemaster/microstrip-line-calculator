@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, jsonify
-from wheeler_1965 import Wheeler_1965
-from hammerstad_1975 import Hammerstad1975
-from Wheeler_1977 import Wheeler_1977
-from hammerstad import HammerstadJensen
-from schneider import SchneiderMicrostrip
-from IPC2141 import IPC2141Microstrip
+from formulas.wheeler_1965 import Wheeler_1965
+from formulas.hammerstad_1975 import Hammerstad1975
+from formulas.Wheeler_1977 import Wheeler_1977
+from formulas.hammerstad import HammerstadJensen
+from formulas.schneider import SchneiderMicrostrip
+from formulas.IPC2141 import IPC2141Microstrip
 app = Flask(__name__)
 
 @app.route("/", methods=["GET", "POST"])
@@ -15,15 +15,16 @@ def index():
 def synthesize():
     data = request.get_json()
     er = data.get("er")
-    h_mm = data.get("h")           # *in mm* from frontend
+    h_mm = data.get("h")           
     formula = data.get("formula")
     zo = data.get("zo")
     elecLen = data.get("elecLen")
     freq = data.get("freq")
-    t=data.get("t")
+    t_mm = data.get("t")
 
-    h = h_mm / 1000.0  # convert mm to meters
-
+    h = h_mm / 1000.0  
+    if t_mm is not None:
+        t = t_mm / 1000.0  
     width_mm = None
     length_mm = None
 
@@ -48,11 +49,15 @@ def synthesize():
         w_m, l_m = ob.synthesize(zo, elecLen)
         width_mm, length_mm = w_m * 1000, l_m * 1000
     elif formula == "IPC2141":
-        ob=IPC2141Microstrip(er,h,t)
-        width_mm= ob.synthesize(zo)*1000
+        # Check if t was provided, which IPC requires
+        if t is None:
+             return jsonify({"error": "IPC2141 formula requires a thickness (t)."}), 400
+        print("IPC2141")
+        ob = IPC2141Microstrip(er, h, t) # <<<--- 3. Now 't' is in meters
+        width_mm = ob.synthesize(zo) * 1000
         
-    if formula=="IPC2141":
-        result={
+    if formula == "IPC2141":
+        result = {
             "width_mm": width_mm
         }
     else:
@@ -70,21 +75,25 @@ def analyze():
     formula = data.get("formula")
     width_mm = data.get("width_mm")
     length_mm = data.get("length_mm")
+    t = None
     try:
         freq = data.get("freq")
     except:
         pass
     try:
-        
-        t=data.get("t")
+        t_mm = data.get("t") # <<<--- 2. Get t in mm
+        if t_mm is not None:
+             t = t_mm / 1000.0 # <<<--- 3. Convert t from mm to METERS
     except:
         pass
 
     h = h_mm / 1000.0  # convert mm to meters
 
     # Convert width and length from mm to meters
-    w = width_mm / 1000.0
-    l = length_mm / 1000.0
+    w = float(width_mm) / 1000.0
+    if(formula != "IPC2141"):
+        
+        l = float(length_mm) / 1000.0
 
     if formula == "Wheeler 1965":
         ob = Wheeler_1965(er, h, freq)
@@ -102,12 +111,16 @@ def analyze():
         ob = SchneiderMicrostrip(er, h, freq)
         zo, elecLen = ob.analyze(w, l)
     elif formula == "IPC2141":
-        ob = IPC2141Microstrip(er, h, t)
+        # Check if t was provided
+        if t is None:
+            return jsonify({"error": "IPC2141 formula requires a thickness (t)."}), 400
+        ob = IPC2141Microstrip(er, h, t) # <<<--- 4. Now 't' is in meters
         zo = ob.analyze(w)
 
     
-    if formula=="IPC2141":
-        return {"zo": zo}
+    if formula == "IPC2141":
+        return jsonify({"zo": zo}) # <<<--- This was correct
+        
     result = {
         "zo": zo,
         "elecLen": elecLen

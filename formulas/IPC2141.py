@@ -22,7 +22,7 @@ class IPC2141Microstrip:
         if w <= 0:
             raise ValueError("Width must be > 0")
         Z0 = (87.0 / math.sqrt(self.er + 1.41)) * math.log((5.98 * self.h) / (0.8 * w + self.t))
-        print("-------------------------------IPC2141 Analyze-----------------------------")
+        # print("-------------------------------IPC2141 Analyze-----------------------------")
         return float(Z0)
 
     def synthesize(self, Z0_target, initial_guess_w=None):
